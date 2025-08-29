@@ -1,19 +1,41 @@
+import { db } from '../db';
+import { productsTable, productVariantsTable } from '../db/schema';
 import { type CreateProductVariantInput, type ProductVariant } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function createProductVariant(input: CreateProductVariantInput): Promise<ProductVariant> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new product variant (size/color combination) for an existing product.
-    // Should validate that the product exists, ensure unique size/color combination, and create the variant record.
-    // Used by admin to add new size/color options to existing shoes.
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+export const createProductVariant = async (input: CreateProductVariantInput): Promise<ProductVariant> => {
+  try {
+    // First, validate that the product exists
+    const existingProduct = await db.select()
+      .from(productsTable)
+      .where(eq(productsTable.id, input.product_id))
+      .execute();
+
+    if (existingProduct.length === 0) {
+      throw new Error(`Product with ID ${input.product_id} does not exist`);
+    }
+
+    // Insert the product variant record
+    const result = await db.insert(productVariantsTable)
+      .values({
         product_id: input.product_id,
         size: input.size,
         color: input.color,
         stock_quantity: input.stock_quantity,
-        price_adjustment: input.price_adjustment,
-        sku: input.sku,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as ProductVariant);
-}
+        price_adjustment: input.price_adjustment.toString(), // Convert number to string for numeric column
+        sku: input.sku
+      })
+      .returning()
+      .execute();
+
+    // Convert numeric fields back to numbers before returning
+    const variant = result[0];
+    return {
+      ...variant,
+      price_adjustment: parseFloat(variant.price_adjustment) // Convert string back to number
+    };
+  } catch (error) {
+    console.error('Product variant creation failed:', error);
+    throw error;
+  }
+};

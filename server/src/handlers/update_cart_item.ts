@@ -1,17 +1,52 @@
+import { db } from '../db';
+import { cartItemsTable, productVariantsTable } from '../db/schema';
 import { type UpdateCartItemInput, type CartItem } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export async function updateCartItemQuantity(input: UpdateCartItemInput): Promise<CartItem> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is updating the quantity of a specific item in the customer's cart.
-    // Should validate that the new quantity doesn't exceed available stock.
-    // Should update the cart item record and return the updated item.
-    // Used when customer changes quantity in cart (+ / - buttons).
-    return Promise.resolve({
-        id: input.id,
-        cart_id: 0, // Will be populated from existing record
-        product_variant_id: 0, // Will be populated from existing record
+  try {
+    // First, get the current cart item to validate it exists
+    const existingCartItems = await db.select()
+      .from(cartItemsTable)
+      .where(eq(cartItemsTable.id, input.id))
+      .execute();
+
+    if (existingCartItems.length === 0) {
+      throw new Error('Cart item not found');
+    }
+
+    const existingCartItem = existingCartItems[0];
+
+    // Get the product variant to check stock availability
+    const productVariants = await db.select()
+      .from(productVariantsTable)
+      .where(eq(productVariantsTable.id, existingCartItem.product_variant_id))
+      .execute();
+
+    if (productVariants.length === 0) {
+      throw new Error('Product variant not found');
+    }
+
+    const productVariant = productVariants[0];
+
+    // Validate that the new quantity doesn't exceed available stock
+    if (input.quantity > productVariant.stock_quantity) {
+      throw new Error(`Insufficient stock. Available: ${productVariant.stock_quantity}, Requested: ${input.quantity}`);
+    }
+
+    // Update the cart item quantity
+    const updatedCartItems = await db.update(cartItemsTable)
+      .set({
         quantity: input.quantity,
-        created_at: new Date(), // Will be preserved from existing record
         updated_at: new Date()
-    } as CartItem);
+      })
+      .where(eq(cartItemsTable.id, input.id))
+      .returning()
+      .execute();
+
+    return updatedCartItems[0];
+  } catch (error) {
+    console.error('Cart item quantity update failed:', error);
+    throw error;
+  }
 }
