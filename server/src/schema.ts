@@ -1,196 +1,290 @@
 import { z } from 'zod';
 
-// Shoe-specific enums
+// Enums for better type safety
 export const shoeSizeSchema = z.enum([
   '5', '5.5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', 
-  '10', '10.5', '11', '11.5', '12', '12.5', '13', '14', '15'
+  '10', '10.5', '11', '11.5', '12', '12.5', '13', '13.5', '14'
 ]);
+export type ShoeSize = z.infer<typeof shoeSizeSchema>;
 
 export const shoeColorSchema = z.enum([
-  'black', 'white', 'brown', 'tan', 'red', 'blue', 'navy', 'gray', 'green', 
-  'pink', 'purple', 'yellow', 'orange', 'beige', 'silver', 'gold', 'multicolor'
+  'black', 'white', 'brown', 'navy', 'red', 'blue', 'gray', 
+  'green', 'pink', 'purple', 'yellow', 'orange', 'beige'
 ]);
-
-export const shoeCategorySchema = z.enum([
-  'sneakers', 'dress_shoes', 'boots', 'sandals', 'loafers', 'athletic', 
-  'casual', 'formal', 'high_heels', 'flats', 'oxfords', 'running'
-]);
+export type ShoeColor = z.infer<typeof shoeColorSchema>;
 
 export const orderStatusSchema = z.enum([
-  'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'
+  'pending', 'processing', 'shipped', 'delivered', 'cancelled'
 ]);
+export type OrderStatus = z.infer<typeof orderStatusSchema>;
 
-// Product schema for shoes
+// Product (Shoe) schemas
 export const productSchema = z.object({
   id: z.number(),
   name: z.string(),
   description: z.string().nullable(),
   brand: z.string(),
-  category: shoeCategorySchema,
-  price: z.number(),
+  category: z.string(),
+  base_price: z.number(),
   image_url: z.string().nullable(),
-  color: shoeColorSchema,
-  size: shoeSizeSchema,
-  stock_quantity: z.number().int(),
   is_active: z.boolean(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date()
 });
-
 export type Product = z.infer<typeof productSchema>;
 
-// Input schema for creating products
 export const createProductInputSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable(),
   brand: z.string().min(1),
-  category: shoeCategorySchema,
-  price: z.number().positive(),
-  image_url: z.string().url().nullable(),
-  color: shoeColorSchema,
-  size: shoeSizeSchema,
-  stock_quantity: z.number().int().nonnegative()
+  category: z.string().min(1),
+  base_price: z.number().positive(),
+  image_url: z.string().url().nullable()
 });
-
 export type CreateProductInput = z.infer<typeof createProductInputSchema>;
 
-// Input schema for updating products
 export const updateProductInputSchema = z.object({
   id: z.number(),
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   brand: z.string().min(1).optional(),
-  category: shoeCategorySchema.optional(),
-  price: z.number().positive().optional(),
+  category: z.string().min(1).optional(),
+  base_price: z.number().positive().optional(),
   image_url: z.string().url().nullable().optional(),
-  color: shoeColorSchema.optional(),
-  size: shoeSizeSchema.optional(),
-  stock_quantity: z.number().int().nonnegative().optional(),
   is_active: z.boolean().optional()
 });
-
 export type UpdateProductInput = z.infer<typeof updateProductInputSchema>;
 
-// Cart item schema
+// Product Variant schemas (for size/color combinations)
+export const productVariantSchema = z.object({
+  id: z.number(),
+  product_id: z.number(),
+  size: shoeSizeSchema,
+  color: shoeColorSchema,
+  stock_quantity: z.number().int(),
+  price_adjustment: z.number(), // Additional cost/discount for this variant
+  sku: z.string(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date()
+});
+export type ProductVariant = z.infer<typeof productVariantSchema>;
+
+export const createProductVariantInputSchema = z.object({
+  product_id: z.number(),
+  size: shoeSizeSchema,
+  color: shoeColorSchema,
+  stock_quantity: z.number().int().nonnegative(),
+  price_adjustment: z.number(),
+  sku: z.string().min(1)
+});
+export type CreateProductVariantInput = z.infer<typeof createProductVariantInputSchema>;
+
+export const updateProductVariantInputSchema = z.object({
+  id: z.number(),
+  stock_quantity: z.number().int().nonnegative().optional(),
+  price_adjustment: z.number().optional(),
+  sku: z.string().min(1).optional()
+});
+export type UpdateProductVariantInput = z.infer<typeof updateProductVariantInputSchema>;
+
+// Customer schemas
+export const customerSchema = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  first_name: z.string(),
+  last_name: z.string(),
+  phone: z.string().nullable(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date()
+});
+export type Customer = z.infer<typeof customerSchema>;
+
+export const createCustomerInputSchema = z.object({
+  email: z.string().email(),
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
+  phone: z.string().nullable()
+});
+export type CreateCustomerInput = z.infer<typeof createCustomerInputSchema>;
+
+// Cart schemas
+export const cartSchema = z.object({
+  id: z.number(),
+  customer_id: z.number(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date()
+});
+export type Cart = z.infer<typeof cartSchema>;
+
 export const cartItemSchema = z.object({
   id: z.number(),
   cart_id: z.number(),
-  product_id: z.number(),
+  product_variant_id: z.number(),
   quantity: z.number().int(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date()
 });
-
 export type CartItem = z.infer<typeof cartItemSchema>;
 
-// Cart schema
-export const cartSchema = z.object({
-  id: z.number(),
-  user_id: z.string().nullable(), // For guest users, this can be null
-  session_id: z.string(), // To track guest carts
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+export const createCartItemInputSchema = z.object({
+  cart_id: z.number(),
+  product_variant_id: z.number(),
+  quantity: z.number().int().positive()
 });
+export type CreateCartItemInput = z.infer<typeof createCartItemInputSchema>;
 
-export type Cart = z.infer<typeof cartSchema>;
-
-// Input schema for adding items to cart
-export const addToCartInputSchema = z.object({
-  product_id: z.number(),
-  quantity: z.number().int().positive(),
-  session_id: z.string() // For guest cart tracking
-});
-
-export type AddToCartInput = z.infer<typeof addToCartInputSchema>;
-
-// Input schema for updating cart items
 export const updateCartItemInputSchema = z.object({
-  cart_item_id: z.number(),
-  quantity: z.number().int().nonnegative() // 0 quantity means remove
+  id: z.number(),
+  quantity: z.number().int().positive()
 });
-
 export type UpdateCartItemInput = z.infer<typeof updateCartItemInputSchema>;
 
-// Order schema
-export const orderSchema = z.object({
+// Address schemas
+export const addressSchema = z.object({
   id: z.number(),
-  user_id: z.string().nullable(),
-  session_id: z.string(),
-  total_amount: z.number(),
-  status: orderStatusSchema,
-  shipping_address: z.string(),
-  billing_address: z.string(),
-  customer_email: z.string().email(),
-  customer_phone: z.string().nullable(),
+  customer_id: z.number(),
+  type: z.enum(['billing', 'shipping']),
+  street_address: z.string(),
+  apartment: z.string().nullable(),
+  city: z.string(),
+  state: z.string(),
+  postal_code: z.string(),
+  country: z.string(),
+  is_default: z.boolean(),
   created_at: z.coerce.date(),
   updated_at: z.coerce.date()
 });
+export type Address = z.infer<typeof addressSchema>;
 
+export const createAddressInputSchema = z.object({
+  customer_id: z.number(),
+  type: z.enum(['billing', 'shipping']),
+  street_address: z.string().min(1),
+  apartment: z.string().nullable(),
+  city: z.string().min(1),
+  state: z.string().min(1),
+  postal_code: z.string().min(1),
+  country: z.string().min(1),
+  is_default: z.boolean().optional()
+});
+export type CreateAddressInput = z.infer<typeof createAddressInputSchema>;
+
+// Order schemas
+export const orderSchema = z.object({
+  id: z.number(),
+  customer_id: z.number(),
+  status: orderStatusSchema,
+  total_amount: z.number(),
+  tax_amount: z.number(),
+  shipping_amount: z.number(),
+  billing_address_id: z.number(),
+  shipping_address_id: z.number(),
+  order_date: z.coerce.date(),
+  shipped_date: z.coerce.date().nullable(),
+  delivered_date: z.coerce.date().nullable(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date()
+});
 export type Order = z.infer<typeof orderSchema>;
 
-// Order item schema
 export const orderItemSchema = z.object({
   id: z.number(),
   order_id: z.number(),
-  product_id: z.number(),
+  product_variant_id: z.number(),
   quantity: z.number().int(),
-  price_at_time: z.number(), // Price when the order was placed
+  unit_price: z.number(),
+  total_price: z.number(),
   created_at: z.coerce.date()
 });
-
 export type OrderItem = z.infer<typeof orderItemSchema>;
 
-// Input schema for creating orders
 export const createOrderInputSchema = z.object({
-  session_id: z.string(),
-  shipping_address: z.string().min(1),
-  billing_address: z.string().min(1),
-  customer_email: z.string().email(),
-  customer_phone: z.string().nullable()
+  customer_id: z.number(),
+  billing_address_id: z.number(),
+  shipping_address_id: z.number(),
+  items: z.array(z.object({
+    product_variant_id: z.number(),
+    quantity: z.number().int().positive()
+  })).min(1)
 });
-
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
 
-// Input schema for updating order status
 export const updateOrderStatusInputSchema = z.object({
-  order_id: z.number(),
+  id: z.number(),
   status: orderStatusSchema
 });
-
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusInputSchema>;
 
-// Cart with items response schema
-export const cartWithItemsSchema = z.object({
-  cart: cartSchema,
-  items: z.array(z.object({
-    cart_item: cartItemSchema,
-    product: productSchema
-  })),
-  total_amount: z.number()
+// Product with variants (for catalog display)
+export const productWithVariantsSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  brand: z.string(),
+  category: z.string(),
+  base_price: z.number(),
+  image_url: z.string().nullable(),
+  is_active: z.boolean(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+  variants: z.array(productVariantSchema)
 });
+export type ProductWithVariants = z.infer<typeof productWithVariantsSchema>;
 
-export type CartWithItems = z.infer<typeof cartWithItemsSchema>;
-
-// Order with items response schema
-export const orderWithItemsSchema = z.object({
-  order: orderSchema,
+// Cart with items (for cart display)
+export const cartWithItemsSchema = z.object({
+  id: z.number(),
+  customer_id: z.number(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
   items: z.array(z.object({
-    order_item: orderItemSchema,
-    product: productSchema
+    id: z.number(),
+    quantity: z.number(),
+    product_variant: z.object({
+      id: z.number(),
+      size: shoeSizeSchema,
+      color: shoeColorSchema,
+      price_adjustment: z.number(),
+      product: z.object({
+        name: z.string(),
+        brand: z.string(),
+        base_price: z.number(),
+        image_url: z.string().nullable()
+      })
+    })
   }))
 });
+export type CartWithItems = z.infer<typeof cartWithItemsSchema>;
 
-export type OrderWithItems = z.infer<typeof orderWithItemsSchema>;
-
-// Product filter schema
-export const productFilterSchema = z.object({
-  category: shoeCategorySchema.optional(),
-  color: shoeColorSchema.optional(),
-  size: shoeSizeSchema.optional(),
-  min_price: z.number().optional(),
-  max_price: z.number().optional(),
-  brand: z.string().optional(),
-  search: z.string().optional()
+// Order with items (for order display)
+export const orderWithItemsSchema = z.object({
+  id: z.number(),
+  customer_id: z.number(),
+  status: orderStatusSchema,
+  total_amount: z.number(),
+  tax_amount: z.number(),
+  shipping_amount: z.number(),
+  order_date: z.coerce.date(),
+  shipped_date: z.coerce.date().nullable(),
+  delivered_date: z.coerce.date().nullable(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+  items: z.array(z.object({
+    id: z.number(),
+    quantity: z.number(),
+    unit_price: z.number(),
+    total_price: z.number(),
+    product_variant: z.object({
+      size: shoeSizeSchema,
+      color: shoeColorSchema,
+      product: z.object({
+        name: z.string(),
+        brand: z.string(),
+        image_url: z.string().nullable()
+      })
+    })
+  })),
+  billing_address: addressSchema,
+  shipping_address: addressSchema
 });
-
-export type ProductFilter = z.infer<typeof productFilterSchema>;
+export type OrderWithItems = z.infer<typeof orderWithItemsSchema>;

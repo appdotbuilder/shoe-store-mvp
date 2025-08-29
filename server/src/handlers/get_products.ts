@@ -1,16 +1,17 @@
-import { type Product, type ProductFilter } from '../schema';
+import { type ProductWithVariants } from '../schema';
 
-export async function getProducts(filter?: ProductFilter): Promise<Product[]> {
+export async function getProducts(): Promise<ProductWithVariants[]> {
     // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching products from the database with optional filtering.
-    // Should support filtering by category, color, size, price range, brand, and search terms.
-    // Should only return active products.
+    // The goal of this handler is fetching all active products with their variants from the database.
+    // Should return products with size/color variants, stock quantities, and pricing information.
+    // Used for displaying the main product catalog/shop page.
     return Promise.resolve([]);
 }
 
-export async function getProductById(id: number): Promise<Product | null> {
+export async function getProductById(id: number): Promise<ProductWithVariants | null> {
     // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching a single product by ID from the database.
-    // Should return null if product doesn't exist or is not active.
+    // The goal of this handler is fetching a specific product by ID with all its variants.
+    // Should return detailed product information including all available sizes/colors for product detail page.
+    // Returns null if product not found.
     return Promise.resolve(null);
 }
